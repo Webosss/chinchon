@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos globales mínimos */
+html,body,#root { height: 100%; }
+body { font-family: system-ui, Avenir, Helvetica, Arial, sans-serif; }
+
+/* No usar @apply globalmente para evitar incompatibilidades con la versión de Tailwind aquí. */
