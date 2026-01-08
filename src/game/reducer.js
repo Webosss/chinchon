@@ -1,4 +1,6 @@
-// acciones: INIT, DRAW_DECK, DRAW_DISCARD, DISCARD, END_TURN
+import { scoreHand, isChinchon } from './rules'
+
+// acciones: INIT, DRAW_DECK, DRAW_DISCARD, DISCARD, END_TURN, CLOSE_ROUND, FINISH_ROUND
 function makeDeck(){
   const suits = ['Oros','Copas','Espadas','Bastos']
   const ranks = [1,2,3,4,5,6,7,10,11,12] // 48 cartas
@@ -11,7 +13,7 @@ function makeDeck(){
 function shuffle(array){ return array.sort(()=>Math.random()-0.5) }
 
 export const initialState = {
-  deck: [], discard: [], players: {}, order: [], turnIndex: 0
+  deck: [], discard: [], players: {}, order: [], turnIndex: 0, round: 1, closer: null, lastRoundSummary: null
 }
 
 export function gameReducer(state, action){
@@ -22,7 +24,7 @@ export function gameReducer(state, action){
       action.players.forEach(p=>{
         players[p] = { name:p, hand: deck.splice(0,7), points: 0 }
       })
-      return { ...state, deck, discard: [], players, order: action.players, turnIndex: 0 }
+      return { ...state, deck, discard: [], players, order: action.players, turnIndex: 0, round: 1, closer: null, lastRoundSummary: null }
     }
     case 'DRAW_DECK': {
       const player = action.player
@@ -49,6 +51,49 @@ export function gameReducer(state, action){
     case 'END_TURN': {
       return {...state, turnIndex: (state.turnIndex+1) % state.order.length}
     }
+
+    case 'CLOSE_ROUND': {
+      // El jugador que cierra provoca el cálculo de puntos de la ronda
+      const closer = action.player
+      const summary = {}
+      const newPlayers = { ...state.players }
+      let chinchonHappened = null
+
+      for(const name of state.order){
+        const p = newPlayers[name]
+        const { points, melds, remaining } = scoreHand(p.hand)
+        summary[name] = { points, melds, remaining }
+        // Si chinchón perfecto
+        if(isChinchon(p.hand)) chinchonHappened = name
+      }
+
+      // Aplicar puntuaciones: si chinchón perfecto -> ese jugador 0 y todos los demás +40
+      if(chinchonHappened){
+        for(const name of state.order){
+          if(name === chinchonHappened) newPlayers[name].points += 0
+          else newPlayers[name].points += 40
+        }
+      } else {
+        // Sumar puntos de deadwood a cada jugador
+        for(const name of state.order){
+          newPlayers[name].points += summary[name].points
+        }
+      }
+
+      return { ...state, players: newPlayers, closer, lastRoundSummary: summary }
+    }
+
+    case 'FINISH_ROUND': {
+      // Reiniciar mazo, repartir 7 cartas a cada jugador, incrementar ronda
+      const deck = makeDeck()
+      const players = {}
+      for(const name of state.order){
+        players[name] = { name, hand: deck.splice(0,7), points: state.players[name].points }
+      }
+      return { ...state, deck, discard: [], players, turnIndex: (state.turnIndex+1) % state.order.length, round: state.round + 1, closer: null, lastRoundSummary: null }
+    }
+
     default: return state
   }
 }
+

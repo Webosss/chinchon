@@ -52,7 +52,8 @@ sudo systemctl reload caddy
 
 ## Estado
 - Skeleton inicial: vistas `Home` y `Game`, reducer de juego con lógica de mazo, robo y descartes.
-- Próximos pasos: sincronización multiusuario (WebSocket), calculadora de combinaciones y puntuación.
+- Nueva: lógica de combinaciones y puntuación en `src/game/rules.js`. Detecta sets y runs, calcula puntos de cartas no combinadas (deadwood) y detecta chinchón perfecto.
+- Próximos pasos: sincronización multiusuario (WebSocket), pulir y testear las reglas (tests incluidos pronto).
 
 
 Currently, two official plugins are available:
