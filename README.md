@@ -53,7 +53,8 @@ sudo systemctl reload caddy
 ## Estado
 - Skeleton inicial: vistas `Home` y `Game`, reducer de juego con lógica de mazo, robo y descartes.
 - Nueva: lógica de combinaciones y puntuación en `src/game/rules.js`. Detecta sets y runs, calcula puntos de cartas no combinadas (deadwood) y detecta chinchón perfecto.
-- Próximos pasos: sincronización multiusuario (WebSocket), pulir y testear las reglas (tests incluidos pronto).
+- Tests: se añadieron tests unitarios con Vitest en `src/game/rules.test.js`. Ejecuta `npm test` o `npm run test:watch` para modo TDD.
+- Próximos pasos: sincronización multiusuario (WebSocket), pulir y testear las reglas (más tests y casos límite).
 
 
 Currently, two official plugins are available:
