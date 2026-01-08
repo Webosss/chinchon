@@ -1,0 +1,15 @@
+# Caddyfile minimal para chin.aligpi.com
+# Sirve la app estática y proxy las conexiones WebSocket al backend
+
+chin.aligpi.com {
+    root * /var/www/chinchon/dist
+    encode gzip zstd
+    file_server
+
+    # Proxy websockets (Caddy maneja Upgrade automáticamente)
+    @ws {
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    reverse_proxy @ws localhost:4000
+}

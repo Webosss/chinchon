@@ -10,7 +10,10 @@ export default function App(){
 
   // Conectar WS al montar la app
   useEffect(()=>{
-    const socket = new WebSocket(process.env.VITE_WS_URL || 'ws://localhost:4000')
+    const defaultUrl = (typeof window !== 'undefined')
+      ? `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`
+      : 'ws://localhost:4000'
+    const socket = new WebSocket(process.env.VITE_WS_URL || defaultUrl)
     socket.addEventListener('message', ev=>{
       try{
         const msg = JSON.parse(ev.data)
