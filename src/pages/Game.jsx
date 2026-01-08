@@ -1,38 +1,42 @@
-import React, { useReducer, useEffect } from 'react'
-import { gameReducer, initialState } from '../game/reducer'
+import React, { useEffect, useState } from 'react'
+import Modal from '../components/Modal'
+import Toast from '../components/Toast'
 
-export default function Game({ roomId, playerName, onLeave }){
-  const [state, dispatch] = useReducer(gameReducer, initialState)
+export default function Game({ ws, serverState, roomId, playerName, onLeave }){
+  const [state, setState] = useState(null)
+  const [toast, setToast] = useState({ message: '', visible: false })
 
   useEffect(()=>{
-    // Inicializamos con el creador y un bot para pruebas
-    dispatch({ type: 'INIT', players: [playerName || 'Jugador1', 'Jugador2'] })
-  }, [roomId])
+    if(serverState && serverState.id === roomId) setState(serverState)
+  }, [serverState, roomId])
 
-  const me = state.players[playerName] || state.players['Jugador1']
-  const turn = state.order[state.turnIndex]
-
-  const canClose = turn === playerName
-  const [toast, setToast] = React.useState({ message: '', visible: false })
-
-  // Cuando cambia lastRoundSummary, si hay chinchón mostramos notificación y abrimos modal
-  React.useEffect(()=>{
-    if(state.lastRoundSummary){
+  useEffect(()=>{
+    if(state && state.lastRoundSummary){
       const { chinchon } = state.lastRoundSummary
       if(chinchon){
         setToast({ message: `¡Chinchón de ${chinchon}!`, visible: true })
         setTimeout(()=> setToast({ message:'', visible:false }), 4000)
       }
     }
-  }, [state.lastRoundSummary])
+  }, [state?.lastRoundSummary])
+
+  const turn = state?.order?.[state?.turnIndex]
+  const canAct = turn === playerName
+
+  function sendAction(action){
+    if(!ws || ws.readyState !== WebSocket.OPEN) return
+    ws.send(JSON.stringify({ type: 'action', payload: { roomId, action } }))
+  }
+
+  if(!state) return <div className="p-4">Conectando... esperando estado de la sala</div>
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <header className="flex justify-between items-center mb-4">
         <div>
           <h2 className="text-xl font-bold">Sala {roomId}</h2>
-          <p className="text-sm text-slate-600">Turno: <strong>{turn}</strong></p>
-          <p className="text-sm">Ronda: {state.round} {state.closer ? `(cerrada por ${state.closer})` : ''}</p>
+          <p className="text-sm text-slate-600">Turno: <strong>{state.order[state.turnIndex]}</strong></p>
+          <p className="text-sm">Ronda: {state.round}</p>
         </div>
         <div className="text-right">
           <p>{playerName}</p>
@@ -43,16 +47,16 @@ export default function Game({ roomId, playerName, onLeave }){
       <section className="flex gap-6">
         <div className="w-1/3">
           <div className="mb-4">
-            <button className="w-full bg-green-600 text-white py-2 rounded" onClick={()=>dispatch({type:'DRAW_DECK', player: playerName || 'Jugador1'})}>Robar del mazo</button>
-            <button className="w-full mt-2 bg-amber-400 py-2 rounded" onClick={()=>dispatch({type:'DRAW_DISCARD', player: playerName || 'Jugador1'})}>Robar del descarte</button>
-            <button className="w-full mt-4 bg-red-600 text-white py-2 rounded" onClick={()=>dispatch({type:'CLOSE_ROUND', player: playerName})} disabled={!canClose}>Cerrar</button>
+            <button className="w-full bg-green-600 text-white py-2 rounded" onClick={()=>sendAction({type:'DRAW_DECK', player: playerName})} disabled={!canAct}>Robar del mazo</button>
+            <button className="w-full mt-2 bg-amber-400 py-2 rounded" onClick={()=>sendAction({type:'DRAW_DISCARD', player: playerName})} disabled={!canAct}>Robar del descarte</button>
+            <button className="w-full mt-4 bg-red-600 text-white py-2 rounded" onClick={()=>sendAction({type:'CLOSE_ROUND', player: playerName})} disabled={!canAct}>Cerrar</button>
           </div>
-          <div className="text-sm">Mazo: {state.deck.length} cartas</div>
-          <div className="text-sm">Descarte: {state.discard.length}</div>
+          <div className="text-sm">Mazo: {state.deckCount} cartas</div>
+          <div className="text-sm">Descarte: {state.discardCount}</div>
           <div className="mt-3">
             <div className="text-sm font-semibold">Puntos acumulados</div>
-            {(Object.values(state.players) || []).map(p => (
-              <div key={p.name} className="text-sm">{p.name}: {p.points}</div>
+            {(state.order || []).map(name => (
+              <div key={name} className="text-sm">{name}: {state.players?.[name]?.points ?? 0}</div>
             ))}
           </div>
         </div>
@@ -60,37 +64,23 @@ export default function Game({ roomId, playerName, onLeave }){
         <div className="flex-1">
           <h3 className="font-semibold mb-2">Tu mano</h3>
           <div className="flex flex-wrap gap-2">
-            {(me?.hand || []).map(c=>(
-              <button key={c.id} className="border rounded px-3 py-2 bg-white" onClick={()=>dispatch({type:'DISCARD', player: playerName || 'Jugador1', cardId: c.id})}>
+            {(state.players?.[playerName]?.hand || []).map(c=>(
+              <button key={c.id} className="border rounded px-3 py-2 bg-white" onClick={()=>sendAction({type:'DISCARD', player: playerName, cardId: c.id})} disabled={!canAct}>
                 {c.suit} {c.rank}
               </button>
             ))}
           </div>
           <div className="mt-4 flex gap-3">
-            <button className="bg-slate-200 px-3 py-2 rounded" onClick={()=>dispatch({type:'END_TURN'})}>Terminar turno</button>
-            <button className="bg-blue-600 text-white px-3 py-2 rounded" onClick={()=>dispatch({type:'FINISH_ROUND'})}>Repartir / Nueva ronda</button>
+            <button className="bg-slate-200 px-3 py-2 rounded" onClick={()=>sendAction({type:'END_TURN'})} disabled={!canAct}>Terminar turno</button>
+            <button className="bg-blue-600 text-white px-3 py-2 rounded" onClick={()=>sendAction({type:'FINISH_ROUND'})}>Repartir / Nueva ronda</button>
           </div>
 
-          {/* Resumen de la última ronda si existe */}
-          {state.lastRoundSummary && (
-            <div className="mt-6 border-t pt-4">
-              <h4 className="font-semibold">Resumen última ronda (cerrada por {state.lastRoundSummary.closer})</h4>
-              <div className="mt-2">
-                {Object.entries(state.lastRoundSummary.players).map(([name, s]) => (
-                  <div key={name} className="mb-2">
-                    <div className="text-sm font-medium">{name}: <span className="text-sm">{s.points} puntos</span></div>
-                    <div className="text-xs text-slate-600">Melds: {s.melds.length || 0} — Cartas no combinadas: {s.remaining.map(r=>r.id).join(', ') || '0'}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </section>
 
       {/* Modal con resumen detallado */}
       {state.lastRoundSummary && (
-        <Modal title={`Resumen Ronda ${state.round}`} onClose={()=>dispatch({type:'CLEAR_SUMMARY'})}>
+        <Modal title={`Resumen Ronda ${state.round}`} onClose={()=>sendAction({type:'FINISH_ROUND'})}>
           <div className="space-y-3">
             {state.lastRoundSummary.chinchon ? (
               <div className="text-amber-600 font-semibold">¡Chinchón de {state.lastRoundSummary.chinchon}!</div>
@@ -108,8 +98,7 @@ export default function Game({ roomId, playerName, onLeave }){
             </div>
 
             <div className="pt-3 border-t flex justify-end gap-3">
-              <button className="px-3 py-2 rounded bg-slate-200" onClick={()=>dispatch({type:'CLEAR_SUMMARY'})}>Cerrar</button>
-              <button className="px-3 py-2 rounded bg-blue-600 text-white" onClick={()=>dispatch({type:'FINISH_ROUND'})}>Nueva ronda</button>
+              <button className="px-3 py-2 rounded bg-slate-200" onClick={()=>sendAction({type:'FINISH_ROUND'})}>Nueva ronda</button>
             </div>
           </div>
         </Modal>
