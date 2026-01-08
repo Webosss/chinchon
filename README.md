@@ -55,6 +55,7 @@ sudo systemctl reload caddy
 - Nueva: lógica de combinaciones y puntuación en `src/game/rules.js`. Detecta sets y runs, calcula puntos de cartas no combinadas (deadwood) y detecta chinchón perfecto.
 - Tests: se añadieron tests unitarios con Vitest en `src/game/rules.test.js`. Ejecuta `npm test` o `npm run test:watch` para modo TDD.
 - Multiusuario: ahora hay un servidor WebSocket (`server/index.js`) que mantiene el estado autoritativo por sala. Usa `ws://localhost:4000` por defecto; en producción puedes configurar `VITE_WS_URL`.
+- Para producción con Caddy, añade un bloque que haga reverse proxy a `ws://localhost:4000` para WebSocket (o ejecuta el servidor bajo un socket y configúralo).
 - Próximos pasos: pulir y testear las reglas (más tests y casos límite), y despliegue del servidor WebSocket si necesitas partidas remotas.
 
 
