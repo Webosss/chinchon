@@ -13,6 +13,18 @@ export default function Game({ roomId, playerName, onLeave }){
   const turn = state.order[state.turnIndex]
 
   const canClose = turn === playerName
+  const [toast, setToast] = React.useState({ message: '', visible: false })
+
+  // Cuando cambia lastRoundSummary, si hay chinchón mostramos notificación y abrimos modal
+  React.useEffect(()=>{
+    if(state.lastRoundSummary){
+      const { chinchon } = state.lastRoundSummary
+      if(chinchon){
+        setToast({ message: `¡Chinchón de ${chinchon}!`, visible: true })
+        setTimeout(()=> setToast({ message:'', visible:false }), 4000)
+      }
+    }
+  }, [state.lastRoundSummary])
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
@@ -62,9 +74,9 @@ export default function Game({ roomId, playerName, onLeave }){
           {/* Resumen de la última ronda si existe */}
           {state.lastRoundSummary && (
             <div className="mt-6 border-t pt-4">
-              <h4 className="font-semibold">Resumen última ronda (cerrada por {state.closer})</h4>
+              <h4 className="font-semibold">Resumen última ronda (cerrada por {state.lastRoundSummary.closer})</h4>
               <div className="mt-2">
-                {Object.entries(state.lastRoundSummary).map(([name, s]) => (
+                {Object.entries(state.lastRoundSummary.players).map(([name, s]) => (
                   <div key={name} className="mb-2">
                     <div className="text-sm font-medium">{name}: <span className="text-sm">{s.points} puntos</span></div>
                     <div className="text-xs text-slate-600">Melds: {s.melds.length || 0} — Cartas no combinadas: {s.remaining.map(r=>r.id).join(', ') || '0'}</div>
@@ -75,6 +87,36 @@ export default function Game({ roomId, playerName, onLeave }){
           )}
         </div>
       </section>
+
+      {/* Modal con resumen detallado */}
+      {state.lastRoundSummary && (
+        <Modal title={`Resumen Ronda ${state.round}`} onClose={()=>dispatch({type:'CLEAR_SUMMARY'})}>
+          <div className="space-y-3">
+            {state.lastRoundSummary.chinchon ? (
+              <div className="text-amber-600 font-semibold">¡Chinchón de {state.lastRoundSummary.chinchon}!</div>
+            ) : (
+              <div className="text-sm text-slate-600">Cierre por: {state.lastRoundSummary.closer}</div>
+            )}
+
+            <div className="mt-2">
+              {Object.entries(state.lastRoundSummary.players).map(([name, s]) => (
+                <div key={name} className="mb-3">
+                  <div className="font-medium">{name} — {s.points} puntos</div>
+                  <div className="text-xs text-slate-600">Melds: {s.melds.length} — No combinadas: {s.remaining.map(r=>r.id).join(', ') || '0'}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-3 border-t flex justify-end gap-3">
+              <button className="px-3 py-2 rounded bg-slate-200" onClick={()=>dispatch({type:'CLEAR_SUMMARY'})}>Cerrar</button>
+              <button className="px-3 py-2 rounded bg-blue-600 text-white" onClick={()=>dispatch({type:'FINISH_ROUND'})}>Nueva ronda</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Toast */}
+      <Toast message={toast.message} visible={toast.visible} onClose={()=>setToast({message:'', visible:false})} />
     </div>
   )
 }

@@ -80,7 +80,8 @@ export function gameReducer(state, action){
         }
       }
 
-      return { ...state, players: newPlayers, closer, lastRoundSummary: summary }
+      const roundSummary = { players: summary, chinchon: chinchonHappened, closer }
+      return { ...state, players: newPlayers, closer, lastRoundSummary: roundSummary }
     }
 
     case 'FINISH_ROUND': {
@@ -91,6 +92,10 @@ export function gameReducer(state, action){
         players[name] = { name, hand: deck.splice(0,7), points: state.players[name].points }
       }
       return { ...state, deck, discard: [], players, turnIndex: (state.turnIndex+1) % state.order.length, round: state.round + 1, closer: null, lastRoundSummary: null }
+    }
+
+    case 'CLEAR_SUMMARY': {
+      return { ...state, lastRoundSummary: null, closer: null }
     }
 
     default: return state
