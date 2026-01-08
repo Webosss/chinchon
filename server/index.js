@@ -19,6 +19,7 @@ function broadcastRoom(room){
     round: room.round,
     closer: room.closer,
     lastRoundSummary: room.lastRoundSummary,
+    turnState: room.turnState || { hasDrawn:false, hasDiscarded:false }
   }})
   for(const [ws, meta] of clients.entries()){
     if(meta.room === room.id && ws.readyState === WebSocket.OPEN) ws.send(payload)

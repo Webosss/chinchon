@@ -21,6 +21,8 @@ export function createRoom(id){
     round: 1,
     closer: null,
     lastRoundSummary: null,
+    // turno state: control de acciones por turno
+    turnState: { hasDrawn: false, hasDiscarded: false }
   }
 }
 
@@ -40,6 +42,8 @@ export function addPlayer(room, name){
   room.deck = room.deck.concat(Object.values(room.players).flatMap(p=>p.hand || []))
   room.deck = shuffle(room.deck)
   dealHands(room)
+  // ensure turnState exists
+  room.turnState = room.turnState || { hasDrawn: false, hasDiscarded: false }
 }
 
 export function removePlayer(room, name){
@@ -53,37 +57,57 @@ export function applyAction(room, action){
   switch(type){
     case 'DRAW_DECK': {
       const player = action.player
-      if(room.deck.length === 0) return { error: 'El mazo está vacío' }
       if(room.order[room.turnIndex] !== player) return { error: 'No es tu turno' }
+      if(room.turnState.hasDrawn) return { error: 'Ya has robado en este turno' }
+      if(room.turnState.hasDiscarded) return { error: 'Ya has descartado, no puedes robar' }
+      if(room.deck.length === 0) return { error: 'El mazo está vacío' }
       const card = room.deck.shift()
       room.players[player].hand.push(card)
+      room.turnState.hasDrawn = true
       return { ok:true }
     }
     case 'DRAW_DISCARD': {
       const player = action.player
-      if(room.discard.length===0) return { error: 'No hay descarte' }
       if(room.order[room.turnIndex] !== player) return { error: 'No es tu turno' }
+      if(room.turnState.hasDrawn) return { error: 'Ya has robado en este turno' }
+      if(room.turnState.hasDiscarded) return { error: 'Ya has descartado, no puedes robar' }
+      if(room.discard.length===0) return { error: 'No hay descarte' }
       const card = room.discard.pop()
       room.players[player].hand.push(card)
+      room.turnState.hasDrawn = true
       return { ok:true }
     }
     case 'DISCARD': {
       const { player, cardId } = action
       if(room.order[room.turnIndex] !== player) return { error: 'No es tu turno' }
+      if(!room.turnState.hasDrawn) return { error: 'Debes robar antes de descartar' }
+      if(room.turnState.hasDiscarded) return { error: 'Ya has descartado en este turno' }
       const hand = room.players[player].hand
       const idx = hand.findIndex(c=>c.id===cardId)
       if(idx === -1) return { error: 'Carta no encontrada en mano' }
       const [card] = hand.splice(idx,1)
       room.discard.push(card)
+      room.turnState.hasDiscarded = true
+      // ensure hand size is correct (7)
+      if(room.players[player].hand.length !== 7) {
+        // Not critical, but enforce by trimming/explaining
+        // If more than 7, keep as is, if less, it's an error
+        if(room.players[player].hand.length < 7) return { error: 'Error: la mano quedó con menos de 7 cartas' }
+      }
       return { ok:true }
     }
     case 'END_TURN': {
+      if(!room.turnState.hasDiscarded) return { error: 'Debes descartar antes de terminar el turno' }
       room.turnIndex = (room.turnIndex+1) % room.order.length
+      // reset turn flags for new turn
+      room.turnState.hasDrawn = false
+      room.turnState.hasDiscarded = false
       return { ok:true }
     }
     case 'CLOSE_ROUND': {
       const closer = action.player
       if(room.order[room.turnIndex] !== closer) return { error: 'No puedes cerrar si no es tu turno' }
+      if(!room.turnState.hasDiscarded) return { error: 'Debes haber descartado antes de cerrar' }
       const summary = {}
       let chinchonHappened = null
       for(const name of room.order){
@@ -117,6 +141,8 @@ export function applyAction(room, action){
       room.round += 1
       room.closer = null
       room.lastRoundSummary = null
+      // reset turn flags
+      room.turnState = { hasDrawn: false, hasDiscarded: false }
       return { ok:true }
     }
     default:
