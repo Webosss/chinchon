@@ -23,7 +23,7 @@ export default function Home({ ws, playerName, setPlayerName, onCreate, onJoin }
   }
 
   return (
-    <main className="min-h-screen bg-gradient-game flex items-center justify-center p-4 animate-fadeIn relative overflow-hidden">
+    <main className="min-h-screen bg-gradient-game flex items-center justify-center p-4 md:p-8 lg:p-12 animate-fadeIn relative overflow-hidden">
       {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-10 left-10 text-white/5 text-9xl animate-float">♠</div>
@@ -32,7 +32,7 @@ export default function Home({ ws, playerName, setPlayerName, onCreate, onJoin }
         <div className="absolute bottom-1/3 right-1/3 text-white/5 text-9xl animate-float" style={{animationDelay: '0.5s'}}>♣</div>
       </div>
 
-      <div className="w-full max-w-md mx-auto glass rounded-3xl shadow-2xl p-6 md:p-8 animate-slideInUp relative z-10 border border-white/20">
+      <div className="w-full max-w-md glass rounded-3xl shadow-2xl p-6 md:p-8 animate-slideInUp relative z-10 border border-white/20">
         {/* Header */}
         <div className="text-center mb-6 md:mb-8">
           <div className="inline-block animate-pulse-soft mb-3">
