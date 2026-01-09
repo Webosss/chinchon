@@ -23,7 +23,7 @@ export default function Home({ ws, playerName, setPlayerName, onCreate, onJoin }
   }
 
   return (
-    <main className="min-h-screen bg-gradient-game flex items-center justify-center p-4 md:p-8 lg:p-12 animate-fadeIn relative overflow-hidden">
+    <main className="min-h-screen bg-gradient-game flex items-center justify-center p-4 animate-fadeIn relative overflow-hidden">
       {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-10 left-10 text-white/5 text-9xl animate-float">♠</div>
@@ -46,72 +46,71 @@ export default function Home({ ws, playerName, setPlayerName, onCreate, onJoin }
           </p>
         </div>
 
-        <div className="space-y-4 md:space-y-5">
+        {/* Formulario centrado */}
+        <div className="flex flex-col items-center justify-center gap-4 max-w-md mx-auto p-4">
           {/* Nombre input */}
-          <div>
-            <label className="block text-sm font-bold text-white/90 mb-2 flex items-center justify-center gap-2">
-              <span>👤</span> Tu nombre
+          <div className="w-full">
+            <label className="block text-center text-sm font-bold text-white/90 mb-2">
+              👤 Tu nombre
             </label>
             <input
               value={playerName}
               onChange={e => setPlayerName(e.target.value)}
               placeholder="Ej: Ana"
-              className="w-full glass border-2 border-white/30 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/50 transition-all text-base"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           {/* Crear partida button */}
           <button
             onClick={handleCreate}
-            className="w-full bg-gradient-to-r from-green-600 via-green-700 to-green-800 hover:from-green-700 hover:via-green-800 hover:to-green-900 text-white font-bold py-3 md:py-4 rounded-xl transition-all transform hover:scale-105 shadow-xl hover:shadow-2xl btn-shine text-base md:text-lg"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
           >
-            <span className="flex items-center justify-center gap-2">
-              <span>🎮</span> Crear partida nueva
-            </span>
+            🎮 Crear partida nueva
           </button>
 
           {/* Divider */}
-          <div className="relative flex items-center py-3 md:py-4">
+          <div className="relative flex items-center py-2 w-full">
             <div className="flex-grow border-t border-white/30"></div>
             <span className="px-4 text-white/60 text-sm font-semibold">o únete a una</span>
             <div className="flex-grow border-t border-white/30"></div>
           </div>
 
           {/* Join code input */}
-          <div>
-            <label className="block text-sm font-bold text-white/90 mb-2 flex items-center justify-center gap-2">
-              <span>🔑</span> Código de la sala
+          <div className="w-full">
+            <label className="block text-center text-sm font-bold text-white/90 mb-2">
+              🔑 Código de la sala
             </label>
             <input
               value={joinCode}
               onChange={e => setJoinCode(e.target.value.toUpperCase())}
               placeholder="ABC123"
               maxLength={6}
-              className="w-full glass border-2 border-white/30 rounded-xl px-4 py-3 text-white placeholder-white/50 text-center font-mono text-xl md:text-2xl font-bold tracking-wider focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/50 transition-all uppercase"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center font-mono text-xl font-bold tracking-wider uppercase"
             />
           </div>
 
-          {/* Unirse button */}
-          <button
-            onClick={handleJoin}
-            className="w-full bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 hover:from-amber-600 hover:via-orange-600 hover:to-orange-700 text-white font-bold py-3 md:py-4 rounded-xl transition-all transform hover:scale-105 shadow-xl hover:shadow-2xl btn-shine text-base md:text-lg"
-          >
-            <span className="flex items-center justify-center gap-2">
-              <span>✅</span> Unirse a partida
-            </span>
-          </button>
+          {/* Botones centrados */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center w-full">
+            <button
+              onClick={handleJoin}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+            >
+              ✅ Unirse a partida
+            </button>
+          </div>
         </div>
 
         {/* Status message */}
         {status && (
-          <div className="mt-4 md:mt-5 p-3 md:p-4 glass border-l-4 border-amber-400 text-white text-sm md:text-base rounded-lg animate-slideInUp">
+          <div className="mt-4 p-3 glass border-l-4 border-amber-400 text-white text-sm rounded-lg animate-slideInUp">
             {status}
           </div>
         )}
 
         {/* Footer info */}
-        <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-white/20">
-          <p className="text-xs md:text-sm text-white/60 text-center">
+        <div className="mt-6 pt-4 border-t border-white/20">
+          <p className="text-xs text-white/60 text-center">
             🌐 Conexión automática al servidor
           </p>
         </div>
