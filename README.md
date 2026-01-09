@@ -120,7 +120,9 @@ server/
 1. **Repartición**: 7 cartas por jugador
 2. **Turnos**: Robar → Descartar → Terminar turno
 3. **Melds**: Tríos (mismo rango) y escaleras (mismo palo, rango secuencial)
-4. **Cierre**: Se permite cuando tienes **6 cartas ligadas** y **1 carta suelta** que valga ≤ 5 puntos
+4. **Cierre**: 
+   - **Chinchón**: 7 cartas ligadas = **-10 puntos** 🎉
+   - **Normal**: 6 cartas ligadas + 1 carta suelta ≤ 5 puntos
 5. **Puntuación**: Suma de valores de cartas no combinadas
    - Cartas 1-7: su valor
    - Cartas 10-12: 10 puntos cada una

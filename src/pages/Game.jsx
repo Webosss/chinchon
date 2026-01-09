@@ -31,10 +31,13 @@ export default function Game({ ws, serverState, roomId, playerName, onLeave }){
 
   const stateLabel = state?.state === 'waiting' ? 'Esperando' : state?.state === 'playing' ? 'En juego' : state?.state === 'finished' ? 'Finalizada' : ''
 
-  // Calculate if player can close: must have exactly 1 card not in melds with value <= 5
+  // Calculate if player can close: 
+  // - 7 cards matched (chinchón) = -10 points
+  // - 6 cards matched + 1 card <= 5 = valid close
   const playerHand = state?.players?.[playerName]?.hand || []
   const { remaining } = scoreHand(playerHand)
-  const canCloseMeld = remaining.length === 1 && (remaining[0]?.rank <= 5 || false)
+  const isChinchon = remaining.length === 0
+  const canCloseMeld = isChinchon || (remaining.length === 1 && (remaining[0]?.rank <= 5 || false))
 
   // Determine which actions are allowed based on turn state
   const canDraw = canAct && !turnState.hasDrawn
@@ -69,7 +72,7 @@ export default function Game({ ws, serverState, roomId, playerName, onLeave }){
         if (!turnState.hasDiscarded) {
           errorMsg = 'Primero debes descartar una carta'
         } else if (remaining.length > 1) {
-          errorMsg = `❌ Debes tener 6 cartas ligadas (tienes ${remaining.length} sin ligar)`
+          errorMsg = `❌ Debes tener 6-7 cartas ligadas (tienes ${remaining.length} sin ligar)`
         } else if (remaining.length === 1 && remaining[0]?.rank > 5) {
           errorMsg = `❌ La carta suelta debe valer ≤ 5 (tienes ${remaining[0].rank})`
         } else {
@@ -220,12 +223,12 @@ export default function Game({ ws, serverState, roomId, playerName, onLeave }){
                       : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                   }`}
                   title={!canClose ? (
-                    !turremaining.length > 1 
-                        ? `Necesitas 6 ligadas (tienes ${remaining.length} sueltas)` 
-                        : `Carta suelta debe ser ≤5 (tienes ${remaining[0]?.rank || '?'})
+                    !turnState.hasDiscarded 
                       ? 'Primero debes descartar' 
-                      : `Cartas no ligadas ${remainingPoints}/5 puntos`
-                  ) : ''}
+                      : remaining.length > 1 
+                        ? `Necesitas 6-7 ligadas (tienes ${remaining.length} sueltas)` 
+                        : `Carta suelta debe ser ≤5 (tienes ${remaining[0]?.rank || '?'})`
+                  ) : isChinchon ? '¡Chinchón! (7 cartas ligadas = -10 puntos)' : 'Cerrar ronda'}
                 >
                   🔒 Cerrar
                 </button>
