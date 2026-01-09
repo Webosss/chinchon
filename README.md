@@ -1,53 +1,197 @@
-# Chinchón - Frontend (Vite + React + Tailwind)
+# Chinchón - Spanish Card Game
 
-Proyecto inicial para una web de Chinchón orientada a partidas privadas (sin backend en primera fase).
+Una implementación web del juego de cartas español **Chinchón**, construida con **React 19**, **Vite**, **Tailwind CSS** y WebSocket para juego en tiempo real.
 
-## Comandos básicos
+![Chinchón Game Screenshot](https://chin.aligpi.com)
 
-- Instalar dependencias:
+## Features
+
+✅ **Cartas españolas reales** - Imágenes PNG de baraja española auténtica (40 cartas + reverso)  
+✅ **Juego en tiempo real** - WebSocket para sincronización entre jugadores  
+✅ **Validación de turnos** - Control automático de acciones permitidas por turno  
+✅ **Cálculo de manos** - Detección automática de melds (tríos y escaleras)  
+✅ **Cierre inteligente** - Solo permitido si cartas no ligadas ≤ 5 puntos  
+✅ **Interfaz responsiva** - UI moderna con Tailwind CSS  
+✅ **Tests E2E** - Validación con Playwright  
+
+## Tech Stack
+
+- **Frontend**: React 19 + Vite + Tailwind CSS
+- **Backend**: Node.js + WebSocket (ws)
+- **Desarrollo**: ESM modules, Vitest, Playwright
+- **Deploy**: Caddy web server
+
+## Instalación
 
 ```bash
+git clone https://github.com/tuusuario/chinchon.git
+cd chinchon
 npm install
 ```
 
-- Desarrollo (exponer en la red para probar desde otras máquinas):
+## Desarrollo
 
 ```bash
 npm run dev -- --host
 ```
 
-> Desarrollo con hot reload activo: editar archivos en `src/` recargará la app automáticamente (Vite + React Fast Refresh).
+El servidor estará disponible en `http://localhost:5173/`
 
-- Build de producción:
+## Build
 
 ```bash
 npm run build
 ```
 
-Los archivos resultantes de producción quedan en `dist/`.
+Archivos de producción en `dist/`
 
-## Despliegue con Caddy (ejemplo)
+## Deploy
 
-1. Construir:
+### Con Caddy
+
 ```bash
 npm run build
+sudo mkdir -p /var/www/chinchon/my-chinchon
+sudo cp -r dist/* /var/www/chinchon/my-chinchon/dist/
 ```
-2. Copiar `dist/` a `/var/www/chinchon/dist` (o la ruta que uses en Caddy):
-```bash
-sudo mkdir -p /var/www/chinchon
-sudo cp -r dist/* /var/www/chinchon/dist/
-sudo chown -R $USER:$USER /var/www/chinchon
-```
-3. Ejemplo de `Caddyfile`:
+
+Ejemplo `Caddyfile`:
+
 ```
 chin.aligpi.com {
+    # Frontend
     root * /var/www/chinchon/dist
     file_server
-    encode gzip zstd
+    
+    # WebSocket backend
+    @ws {
+        path /ws*
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    reverse_proxy @ws localhost:4000
+    
+    encode gzip
+    
+    # SPA fallback
+    try_files {path} /index.html
 }
 ```
 
-Luego recarga Caddy:
+Recargar Caddy:
+```bash
+sudo systemctl reload caddy
+```
+
+## Estructura del Proyecto
+
+```
+src/
+├── components/
+│   ├── Card.jsx           # Carta individual con PNG
+│   ├── Hand.jsx           # Mano del jugador
+│   ├── DeckPile.jsx       # Mazo (deck)
+│   ├── DiscardPile.jsx    # Descarte (discard)
+│   ├── Modal.jsx          # Modal para resumen
+│   └── Toast.jsx          # Notificaciones
+├── pages/
+│   ├── Home.jsx           # Página inicial
+│   └── Game.jsx           # Juego principal
+├── game/
+│   ├── reducer.js         # Lógica de estado
+│   ├── rules.js           # Cálculo de melds y puntos
+│   └── rules.test.js      # Tests unitarios
+├── assets/
+│   └── cards/
+│       ├── {01-12}-{bastos|copas|espadas|oros}.png
+│       ├── reverso.png
+│       └── cardImages.js   # Imports de todas las cartas
+└── App.jsx
+└── main.jsx
+
+server/
+├── index.js               # WebSocket server
+├── game.js                # Lógica del juego
+└── game.test.js           # Tests
+```
+
+## Reglas de Chinchón Implementadas
+
+1. **Repartición**: 7 cartas por jugador
+2. **Turnos**: Robar → Descartar → Terminar turno
+3. **Melds**: Tríos (mismo rango) y escaleras (mismo palo, rango secuencial)
+4. **Cierre**: Se permite con cartas no ligadas ≤ 5 puntos
+5. **Puntuación**: Suma de valores de cartas no combinadas
+   - Cartas 1-7: su valor
+   - Cartas 10-12: 10 puntos cada una
+
+## API WebSocket
+
+### Cliente → Servidor
+
+```json
+{
+  "type": "action",
+  "payload": {
+    "roomId": "sala123",
+    "action": {
+      "type": "DRAW_DECK" | "DRAW_DISCARD" | "DISCARD" | "END_TURN" | "CLOSE_ROUND",
+      "player": "nombreJugador",
+      "cardId": "..." // solo para DISCARD
+    }
+  }
+}
+```
+
+### Servidor → Cliente
+
+```json
+{
+  "type": "state",
+  "state": {
+    "id": "sala123",
+    "state": "waiting" | "playing" | "finished",
+    "players": { "nombreJugador": { "hand": [...], "points": 0 } },
+    "order": ["jugador1", "jugador2"],
+    "turnIndex": 0,
+    "deckCount": 25,
+    "discardPile": [{ "suit": "bastos", "rank": 12 }, ...],
+    "discardCount": 15,
+    "turnState": { "hasDrawn": false, "hasDiscarded": false },
+    "round": 1,
+    "closer": null,
+    "lastRoundSummary": {...}
+  }
+}
+```
+
+## Testing
+
+### Unit Tests
+
+```bash
+npm run test
+```
+
+### E2E Tests
+
+```bash
+npm run test:e2e
+```
+
+## Licencia
+
+MIT
+
+## Autor
+
+Alberto - 2026
+
+---
+
+**Repo**: https://github.com/tuusuario/chinchon  
+**Demo**: https://chin.aligpi.com
+
 ```bash
 sudo systemctl reload caddy
 ```
