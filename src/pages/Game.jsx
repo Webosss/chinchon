@@ -31,10 +31,10 @@ export default function Game({ ws, serverState, roomId, playerName, onLeave }){
 
   const stateLabel = state?.state === 'waiting' ? 'Esperando' : state?.state === 'playing' ? 'En juego' : state?.state === 'finished' ? 'Finalizada' : ''
 
-  // Calculate if player can close: must have discarded and remaining cards <= 5 points
+  // Calculate if player can close: must have exactly 1 card not in melds with value <= 5
   const playerHand = state?.players?.[playerName]?.hand || []
-  const { points: remainingPoints } = scoreHand(playerHand)
-  const canCloseMeld = remainingPoints <= 5
+  const { remaining } = scoreHand(playerHand)
+  const canCloseMeld = remaining.length === 1 && (remaining[0]?.rank <= 5 || false)
 
   // Determine which actions are allowed based on turn state
   const canDraw = canAct && !turnState.hasDrawn
@@ -68,8 +68,10 @@ export default function Game({ ws, serverState, roomId, playerName, onLeave }){
       } else if (actionType === 'CLOSE_ROUND') {
         if (!turnState.hasDiscarded) {
           errorMsg = 'Primero debes descartar una carta'
-        } else if (!canCloseMeld) {
-          errorMsg = `❌ Cartas no ligadas > 5 puntos (tienes ${remainingPoints})`
+        } else if (remaining.length > 1) {
+          errorMsg = `❌ Debes tener 6 cartas ligadas (tienes ${remaining.length} sin ligar)`
+        } else if (remaining.length === 1 && remaining[0]?.rank > 5) {
+          errorMsg = `❌ La carta suelta debe valer ≤ 5 (tienes ${remaining[0].rank})`
         } else {
           errorMsg = 'No puedes cerrar en este momento'
         }
@@ -218,7 +220,9 @@ export default function Game({ ws, serverState, roomId, playerName, onLeave }){
                       : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                   }`}
                   title={!canClose ? (
-                    !turnState.hasDiscarded 
+                    !turremaining.length > 1 
+                        ? `Necesitas 6 ligadas (tienes ${remaining.length} sueltas)` 
+                        : `Carta suelta debe ser ≤5 (tienes ${remaining[0]?.rank || '?'})
                       ? 'Primero debes descartar' 
                       : `Cartas no ligadas ${remainingPoints}/5 puntos`
                   ) : ''}
