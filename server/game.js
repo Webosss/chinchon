@@ -13,6 +13,7 @@ export function createRoom(id){
   const deck = makeDeck()
   return {
     id,
+    state: 'waiting',
     deck,
     discard: [],
     players: {}, // name -> { name, hand: [], points }
@@ -24,7 +25,7 @@ export function createRoom(id){
     // turno state: control de acciones por turno
     turnState: { hasDrawn: false, hasDiscarded: false }
   }
-}
+} 
 
 function dealHands(room){
   const deck = room.deck
@@ -64,6 +65,7 @@ export function applyAction(room, action){
       const card = room.deck.shift()
       room.players[player].hand.push(card)
       room.turnState.hasDrawn = true
+      if(room.state === 'waiting') room.state = 'playing'
       return { ok:true }
     }
     case 'DRAW_DISCARD': {
@@ -75,6 +77,7 @@ export function applyAction(room, action){
       const card = room.discard.pop()
       room.players[player].hand.push(card)
       room.turnState.hasDrawn = true
+      if(room.state === 'waiting') room.state = 'playing'
       return { ok:true }
     }
     case 'DISCARD': {
@@ -94,6 +97,7 @@ export function applyAction(room, action){
         // If more than 7, keep as is, if less, it's an error
         if(room.players[player].hand.length < 7) return { error: 'Error: la mano quedó con menos de 7 cartas' }
       }
+      if(room.state === 'waiting') room.state = 'playing'
       return { ok:true }
     }
     case 'END_TURN': {
@@ -102,6 +106,7 @@ export function applyAction(room, action){
       // reset turn flags for new turn
       room.turnState.hasDrawn = false
       room.turnState.hasDiscarded = false
+      if(room.state === 'waiting') room.state = 'playing'
       return { ok:true }
     }
     case 'CLOSE_ROUND': {
@@ -128,6 +133,7 @@ export function applyAction(room, action){
       }
       room.closer = closer
       room.lastRoundSummary = { players: summary, chinchon: chinchonHappened, closer }
+      if(room.state === 'waiting') room.state = 'playing'
       return { ok:true }
     }
     case 'FINISH_ROUND': {
@@ -143,6 +149,7 @@ export function applyAction(room, action){
       room.lastRoundSummary = null
       // reset turn flags
       room.turnState = { hasDrawn: false, hasDiscarded: false }
+      if(room.state === 'waiting') room.state = 'playing'
       return { ok:true }
     }
     default:

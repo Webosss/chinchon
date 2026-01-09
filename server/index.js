@@ -11,10 +11,12 @@ const clients = new Map() // ws -> { name, room }
 function broadcastRoom(room){
   const payload = JSON.stringify({ type: 'state', state: {
     id: room.id,
+    state: room.state,
     players: room.players,
     order: room.order,
     deckCount: room.deck.length,
     discardCount: room.discard.length,
+    discardPile: room.discard,
     turnIndex: room.turnIndex,
     round: room.round,
     closer: room.closer,
@@ -51,6 +53,7 @@ wss.on('connection', (ws)=>{
           const { roomId, playerName } = msg.payload
           const room = rooms.get(roomId)
           if(!room){ ws.send(JSON.stringify({ type: 'error', message: 'Sala no encontrada' })); break }
+          if(room.state !== 'waiting'){ ws.send(JSON.stringify({ type: 'error', message: 'La partida ya comenzó' })); break }
           addPlayer(room, playerName)
           clients.set(ws, { name: playerName, room: roomId })
           broadcastRoom(room)

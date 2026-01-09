@@ -16,6 +16,8 @@ npm install
 npm run dev -- --host
 ```
 
+> Desarrollo con hot reload activo: editar archivos en `src/` recargará la app automáticamente (Vite + React Fast Refresh).
+
 - Build de producción:
 
 ```bash
