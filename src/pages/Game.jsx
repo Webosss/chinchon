@@ -32,12 +32,14 @@ export default function Game({ ws, serverState, roomId, playerName, onLeave }){
   const stateLabel = state?.state === 'waiting' ? 'Esperando' : state?.state === 'playing' ? 'En juego' : state?.state === 'finished' ? 'Finalizada' : ''
 
   // Calculate if player can close: 
-  // - 7 cards matched (chinchón) = -10 points
+  // - 7 cards in a run (perfect chinchón) = WIN GAME
+  // - 7 cards matched (normal chinchón) = -10 points
   // - 6 cards matched + 1 card <= 5 = valid close
   const playerHand = state?.players?.[playerName]?.hand || []
   const { remaining } = scoreHand(playerHand)
-  const isChinchon = remaining.length === 0
-  const canCloseMeld = isChinchon || (remaining.length === 1 && (remaining[0]?.rank <= 5 || false))
+  const perfectChinchon = isPerfectChinchon(playerHand) // Escalera de 7 = gana partida
+  const normalChinchon = remaining.length === 0 && !perfectChinchon // 7 ligadas = -10 puntos
+  const canCloseMeld = remaining.length === 0 || (remaining.length === 1 && (remaining[0]?.rank <= 5 || false))
 
   // Determine which actions are allowed based on turn state
   const canDraw = canAct && !turnState.hasDrawn
