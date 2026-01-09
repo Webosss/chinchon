@@ -49,7 +49,7 @@ export default function Home({ ws, playerName, setPlayerName, onCreate, onJoin }
         <div className="space-y-4 md:space-y-5">
           {/* Nombre input */}
           <div>
-            <label className="block text-sm font-bold text-white/90 mb-2 flex items-center gap-2">
+            <label className="block text-sm font-bold text-white/90 mb-2 flex items-center justify-center gap-2">
               <span>👤</span> Tu nombre
             </label>
             <input
@@ -79,7 +79,7 @@ export default function Home({ ws, playerName, setPlayerName, onCreate, onJoin }
 
           {/* Join code input */}
           <div>
-            <label className="block text-sm font-bold text-white/90 mb-2 flex items-center gap-2">
+            <label className="block text-sm font-bold text-white/90 mb-2 flex items-center justify-center gap-2">
               <span>🔑</span> Código de la sala
             </label>
             <input
