@@ -5,7 +5,7 @@ import Hand from '../components/Hand'
 import Card from '../components/Card'
 import DeckPile from '../components/DeckPile'
 import DiscardPile from '../components/DiscardPile'
-import { scoreHand } from '../game/rules'
+import { scoreHand, isPerfectChinchon } from '../game/rules';
 
 export default function Game({ ws, serverState, roomId, playerName, onLeave }){
   const [state, setState] = useState(null)
@@ -228,9 +228,9 @@ export default function Game({ ws, serverState, roomId, playerName, onLeave }){
                       : remaining.length > 1 
                         ? `Necesitas 6-7 ligadas (tienes ${remaining.length} sueltas)` 
                         : `Carta suelta debe ser ≤5 (tienes ${remaining[0]?.rank || '?'})`
-                  ) : isChinchon ? '¡Chinchón! (7 cartas ligadas = -10 puntos)' : 'Cerrar ronda'}
+                  ) : perfectChinchon ? '¡CHINCHÓN PERFECTO! Escalera de 7 cartas = GANAS LA PARTIDA 🏆' : normalChinchon ? '¡Chinchón! (7 cartas ligadas = -10 puntos)' : 'Cerrar ronda'}
                 >
-                  🔒 Cerrar
+                  {perfectChinchon ? '🏆 CHINCHÓN' : '🔒 Cerrar'}
                 </button>
                 <button
                   onClick={() => handleAction('FINISH_ROUND', {})}

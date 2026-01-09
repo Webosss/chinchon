@@ -78,7 +78,15 @@ export function scoreHand(hand){
   return { points, melds, remaining }
 }
 
-// Caso especial: chinchón -> si remaining.length === 0, es chinchón perfecto
+// Detecta si la mano es un chinchón perfecto (escalera de 7 cartas = gana partida)
+export function isPerfectChinchon(hand){
+  if(hand.length !== 7) return false
+  const { melds, remaining } = findBestMelds(hand)
+  // Debe ser UNA escalera de 7 cartas (sin cartas restantes)
+  return remaining.length === 0 && melds.length === 1 && isRun(melds[0]) && melds[0].length === 7
+}
+
+// Chinchón normal: todas las 7 cartas ligadas en cualquier combinación (= -10 puntos)
 export function isChinchon(hand){
   const { remaining } = findBestMelds(hand)
   return remaining.length === 0
@@ -89,5 +97,6 @@ export default {
   findBestMelds,
   scoreHand,
   isChinchon,
+  isPerfectChinchon,
   cardValue
 }
