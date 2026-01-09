@@ -50,7 +50,7 @@ export default function Game({ ws, serverState, roomId, playerName, onLeave }){
 
   function handleAction(actionType, actionPayload) {
     // Check if action is allowed and show error if not
-    const actionRules = {
+    const allowed = {
       'DRAW_DECK': canDraw,
       'DRAW_DISCARD': canDraw,
       'DISCARD': canDiscard,
@@ -59,29 +59,29 @@ export default function Game({ ws, serverState, roomId, playerName, onLeave }){
       'FINISH_ROUND': canDeal
     }
 
-    if (!actionRules[actionType]) {
+    if (!allowed[actionType]) {
       let errorMsg = 'Acción no permitida'
-      
-      if (!canAct) {
-        errorMsg = 'No es tu turno'
-      } else if (actionType === 'DRAW_DECK' || actionType === 'DRAW_DISCARD') {
-        errorMsg = 'Ya has robado una carta'
-      } else if (actionType === 'DISCARD') {
-        errorMsg = 'Primero debes robar una carta'
-      } else if (actionType === 'END_TURN') {
-        errorMsg = 'Primero debes descartar una carta'
-      } else if (actionType === 'CLOSE_ROUND') {
-        if (!turnState.hasDiscarded) {
+      if (canAct) {
+        if (actionType === 'DRAW_DECK' || actionType === 'DRAW_DISCARD') {
+          errorMsg = 'Ya has robado una carta'
+        } else if (actionType === 'DISCARD') {
+          errorMsg = 'Primero debes robar una carta'
+        } else if (actionType === 'END_TURN') {
           errorMsg = 'Primero debes descartar una carta'
-        } else if (remaining.length > 1) {
-          errorMsg = `❌ Debes tener 6-7 cartas ligadas (tienes ${remaining.length} sin ligar)`
-        } else if (remaining.length === 1 && remaining[0]?.rank > 5) {
-          errorMsg = `❌ La carta suelta debe valer ≤ 5 (tienes ${remaining[0].rank})`
-        } else {
-          errorMsg = 'No puedes cerrar en este momento'
+        } else if (actionType === 'CLOSE_ROUND') {
+          if (!turnState.hasDiscarded) {
+            errorMsg = 'Primero debes descartar una carta'
+          } else if (remaining.length > 1) {
+            errorMsg = `❌ Debes tener 6-7 cartas ligadas (tienes ${remaining.length} sin ligar)`
+          } else if (remaining.length === 1 && remaining[0]?.rank > 5) {
+            errorMsg = `❌ La carta suelta debe valer ≤ 5 (tienes ${remaining[0].rank})`
+          } else {
+            errorMsg = 'No puedes cerrar en este momento'
+          }
         }
+      } else {
+        errorMsg = 'No es tu turno'
       }
-      
       setToast({ message: `❌ ${errorMsg}`, visible: true })
       setTimeout(() => setToast({ message: '', visible: false }), 3000)
       return
@@ -90,204 +90,306 @@ export default function Game({ ws, serverState, roomId, playerName, onLeave }){
     sendAction({ type: actionType, ...actionPayload })
   }
 
-  function sendAction(action){
-    if(!ws || ws.readyState !== WebSocket.OPEN) return
+  function sendAction(action) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return
     ws.send(JSON.stringify({ type: 'action', payload: { roomId, action } }))
   }
 
   if(!state) return <div className="p-4 text-white">Conectando...</div>
 
   return (
-    <div className="min-h-screen bg-green-800 text-white flex flex-col">
-      {/* TOP HEADER: Compact info bar */}
-      <header className="bg-green-900 border-b-2 border-green-700 p-3 shadow-lg">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex gap-6 items-center text-sm">
-            <div>
-              <span className="text-gray-300">Sala:</span> <strong className="text-lg">{roomId}</strong>
+    <div className="min-h-screen bg-gradient-game text-white flex flex-col animate-fadeIn">
+      {/* HEADER */}
+      <header className="glass border-b border-white/20 p-3 md:p-4 shadow-2xl backdrop-blur-md animate-slideInUp">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
+          <div className="flex flex-wrap gap-2 md:gap-4 items-center text-xs md:text-sm justify-center">
+            <div className="glass px-2 md:px-3 py-1.5 rounded-lg">
+              <span className="text-gray-300">🎲 Sala:</span> 
+              <strong className="text-sm md:text-base ml-1 text-amber-400">{roomId}</strong>
             </div>
-            <div>
-              <span className="text-gray-300">Turno:</span> <strong>{state.order[state.turnIndex]}</strong>
+            <div className="glass px-2 md:px-3 py-1.5 rounded-lg">
+              <span className="text-gray-300">🎯 Turno:</span> 
+              <strong className="ml-1 text-green-300">{state.order[state.turnIndex]}</strong>
             </div>
-            <div>
-              <span className="text-gray-300">Ronda:</span> <strong>{state.round}</strong>
+            <div className="glass px-2 md:px-3 py-1.5 rounded-lg">
+              <span className="text-gray-300">📊 Ronda:</span> 
+              <strong className="ml-1">{state.round}</strong>
             </div>
             {stateLabel && (
-              <div className="px-2 py-1 rounded bg-amber-500 text-sm font-semibold">
+              <div className="px-2 md:px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-xs md:text-sm font-bold shadow-lg animate-pulse-soft">
                 {stateLabel}
               </div>
             )}
           </div>
-          <div className="flex gap-4 items-center">
-            <div className="text-sm">
-              <span className="text-gray-300">Eres:</span> <strong>{playerName}</strong>
+          <div className="flex gap-2 md:gap-3 items-center">
+            <div className="text-xs md:text-sm glass px-2 md:px-3 py-1.5 rounded-lg">
+              <span className="text-gray-300">👤</span> 
+              <strong className="ml-1">{playerName}</strong>
             </div>
             <button
               onClick={onLeave}
-              className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-sm font-semibold transition"
+              className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-xs md:text-sm font-bold transition-all transform hover:scale-105 shadow-lg btn-shine"
             >
-              Salir
+              ✖ Salir
             </button>
           </div>
         </div>
       </header>
 
-      {/* MAIN CONTENT: Tapete + mano */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* TAPETE SECTION: Center green table with decks */}
-        <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
-          <div className="w-full max-w-5xl bg-green-700 rounded-3xl shadow-2xl p-8 flex flex-col items-center justify-center min-h-96 tapete">
-            {/* Score board: top of tapete */}
-            <div className="w-full mb-6 flex justify-between text-xs text-white/70 font-semibold">
-              <div>Puntos</div>
-              <div>Turno: {state.order[state.turnIndex]}</div>
-            </div>
-
-            {/* DECKS: Mazo + Descarte centered horizontally */}
-            <div className="flex gap-12 items-end justify-center">
-              <DeckPile
-                count={state.deckCount}
-                disabled={!canAct}
-                onClick={() => sendAction({ type: 'DRAW_DECK', player: playerName })}
-                label="Mazo"
-              />
-              <DiscardPile
-                cards={state.discardPile || []}
-                count={state.discardCount}
-                onClick={() => sendAction({ type: 'DRAW_DISCARD', player: playerName })}
-                label="Descarte"
-              />
-            </div>
-
-            {/* Scoreboard: bottom info on tapete */}
-            <div className="w-full mt-8 pt-6 border-t border-white/20">
-              <div className="grid grid-cols-2 gap-4 text-xs text-white/80">
-                {(state.order || []).map(name => (
-                  <div key={name} className="flex justify-between">
-                    <span>{name}:</span>
-                    <strong>{state.players?.[name]?.points ?? 0}</strong>
+      {/* MAIN CONTENT */}
+      <main className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* LEFT SIDEBAR: Players info */}
+        <aside className="lg:w-64 bg-gradient-to-b from-green-900/50 to-green-950/50 glass border-r border-white/10 p-3 md:p-4 overflow-y-auto animate-slideInLeft">
+          <h3 className="text-sm md:text-base font-bold mb-3 md:mb-4 text-amber-400 flex items-center gap-2">
+            <span>👥</span> Jugadores
+          </h3>
+          <div className="space-y-2 md:space-y-3">
+            {(state.order || []).map(name => {
+              const isCurrentTurn = name === state.order[state.turnIndex]
+              const isMe = name === playerName
+              return (
+                <div 
+                  key={name} 
+                  className={`glass rounded-lg p-2 md:p-3 transition-all scoreboard-item ${
+                    isCurrentTurn ? 'ring-2 ring-green-400 shadow-lg shadow-green-400/50' : ''
+                  } ${isMe ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20' : ''}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {isCurrentTurn && <span className="animate-pulse text-green-400">▶</span>}
+                      <span className={`text-xs md:text-sm font-semibold ${isMe ? 'text-amber-400' : ''}`}>
+                        {name} {isMe && '(Tú)'}
+                      </span>
+                    </div>
+                    <span className="text-xs md:text-sm font-bold">
+                      {state.players?.[name]?.hand?.length || 0} 🃏
+                    </span>
                   </div>
-                ))}
+                </div>
+              )
+            })}
+          </div>
+        </aside>
+
+        {/* CENTER: Tapete (table) */}
+        <div className="flex-1 flex items-center justify-center p-2 md:p-4 overflow-hidden animate-fadeIn">
+          <div className="w-full max-w-4xl tapete p-4 md:p-8 relative">
+            {/* Decorative elements */}
+            <div className="absolute top-4 left-4 text-white/10 text-4xl md:text-6xl animate-float">♠</div>
+            <div className="absolute bottom-4 right-4 text-white/10 text-4xl md:text-6xl animate-float" style={{animationDelay: '1s'}}>♥</div>
+            
+            <div className="flex flex-col items-center justify-center min-h-full gap-6 md:gap-8">
+              {/* Decks */}
+              <div className="flex gap-6 md:gap-12 items-center justify-center">
+                <div className="transform hover:scale-105 transition-transform">
+                  <DeckPile
+                    count={state.deckCount}
+                    disabled={!canDraw}
+                    onClick={() => handleAction('DRAW_DECK', { player: playerName })}
+                    label="Mazo"
+                  />
+                </div>
+                <div className="transform hover:scale-105 transition-transform">
+                  <DiscardPile
+                    cards={state.discardPile || []}
+                    count={state.discardCount}
+                    onClick={() => handleAction('DRAW_DISCARD', { player: playerName })}
+                    label="Descarte"
+                  />
+                </div>
+              </div>
+
+              {/* Info text */}
+              <div className="text-center text-white/70 text-xs md:text-sm glass px-3 md:px-4 py-2 rounded-lg">
+                {canAct ? (
+                  <span className="text-green-300 font-semibold animate-pulse-soft">
+                    🎯 ¡Es tu turno!
+                  </span>
+                ) : (
+                  <span>Esperando a {state.order[state.turnIndex]}...</span>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* MANO SECTION: Bottom player hand */}
-        <div className="bg-green-900 border-t-2 border-green-700 p-4">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-2 flex justify-between items-center">
-              <h3 className="text-sm font-semibold text-gray-300">TU MANO</h3>
-              <div className="flex gap-2">
-                {/* Action buttons: near hand */}
-                <button
-                  onClick={() => handleAction('DRAW_DECK', { player: playerName })}
-                  disabled={!canDraw}
-                  className={`px-3 py-1 rounded text-sm font-semibold transition ${
-                    canDraw
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
-                      : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+        {/* RIGHT SIDEBAR: Scores */}
+        <aside className="lg:w-64 bg-gradient-to-b from-amber-900/50 to-orange-950/50 glass border-l border-white/10 p-3 md:p-4 overflow-y-auto animate-slideInRight">
+          <h3 className="text-sm md:text-base font-bold mb-3 md:mb-4 text-amber-400 flex items-center gap-2">
+            <span>🏆</span> Puntuaciones
+          </h3>
+          <div className="space-y-2 md:space-y-3">
+            {(state.order || []).map(name => {
+              const points = state.players?.[name]?.points ?? 0
+              const isMe = name === playerName
+              return (
+                <div 
+                  key={name} 
+                  className={`glass rounded-lg p-2 md:p-3 transition-all scoreboard-item ${
+                    isMe ? 'ring-2 ring-amber-400' : ''
                   }`}
-                  title={!canDraw ? 'Ya robaste una carta' : ''}
                 >
-                  📥 Robar mazo
-                </button>
-                <button
-                  onClick={() => handleAction('DRAW_DISCARD', { player: playerName })}
-                  disabled={!canDraw}
-                  className={`px-3 py-1 rounded text-sm font-semibold transition ${
-                    canDraw
-                      ? 'bg-amber-500 hover:bg-amber-600 text-white cursor-pointer'
-                      : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  }`}
-                  title={!canDraw ? 'Ya robaste una carta' : ''}
-                >
-                  📤 Robar descarte
-                </button>
-                <button
-                  onClick={() => handleAction('END_TURN', {})}
-                  disabled={!canEndTurn}
-                  className={`px-3 py-1 rounded text-sm font-semibold transition ${
-                    canEndTurn
-                      ? 'bg-green-600 hover:bg-green-700 text-white cursor-pointer'
-                      : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  }`}
-                  title={!canEndTurn ? 'Debes robar y descartar primero' : ''}
-                >
-                  ✓ Terminar turno
-                </button>
-                <button
-                  onClick={() => handleAction('CLOSE_ROUND', { player: playerName })}
-                  disabled={!canClose}
-                  className={`px-3 py-1 rounded text-sm font-semibold transition ${
-                    canClose
-                      ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
-                      : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  }`}
-                  title={!canClose ? (
-                    !turnState.hasDiscarded 
-                      ? 'Primero debes descartar' 
-                      : remaining.length > 1 
-                        ? `Necesitas 6-7 ligadas (tienes ${remaining.length} sueltas)` 
-                        : `Carta suelta debe ser ≤5 (tienes ${remaining[0]?.rank || '?'})`
-                  ) : perfectChinchon ? '¡CHINCHÓN PERFECTO! Escalera de 7 cartas = GANAS LA PARTIDA 🏆' : normalChinchon ? '¡Chinchón! (7 cartas ligadas = -10 puntos)' : 'Cerrar ronda'}
-                >
-                  {perfectChinchon ? '🏆 CHINCHÓN' : '🔒 Cerrar'}
-                </button>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs md:text-sm font-medium ${isMe ? 'text-amber-400' : ''}`}>
+                      {name}
+                    </span>
+                    <span className={`text-base md:text-xl font-bold ${
+                      points <= 0 ? 'text-green-400' : points < 50 ? 'text-yellow-400' : 'text-red-400'
+                    }`}>
+                      {points}
+                    </span>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="mt-1 md:mt-2 h-1 md:h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all ${
+                        points <= 0 ? 'bg-green-400' : points < 50 ? 'bg-yellow-400' : 'bg-red-400'
+                      }`}
+                      style={{ width: `${Math.min(100, (points / 100) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </aside>
+      </main>
+
+      {/* HAND SECTION */}
+      <div className="bg-gradient-to-t from-green-950 to-green-900/90 border-t-2 border-amber-500/50 p-2 md:p-4 shadow-2xl animate-slideInUp">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-2 md:mb-3 flex flex-col md:flex-row justify-between items-center gap-2">
+            <h3 className="text-xs md:text-sm font-bold text-amber-400 flex items-center gap-2">
+              <span>🃏</span> TU MANO
+            </h3>
+            
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-1 md:gap-2 justify-center">
+              <button
+                onClick={() => handleAction('DRAW_DECK', { player: playerName })}
+                disabled={!canDraw}
+                className={`px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all transform hover:scale-105 btn-shine ${
+                  canDraw
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white cursor-pointer shadow-lg'
+                    : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-50'
+                }`}
+                title={!canDraw ? 'Ya robaste una carta' : ''}
+              >
+                📥 Robar
+              </button>
+              <button
+                onClick={() => handleAction('DRAW_DISCARD', { player: playerName })}
+                disabled={!canDraw}
+                className={`px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all transform hover:scale-105 btn-shine ${
+                  canDraw
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white cursor-pointer shadow-lg'
+                    : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-50'
+                }`}
+                title={!canDraw ? 'Ya robaste una carta' : ''}
+              >
+                📤 Descarte
+              </button>
+              <button
+                onClick={() => handleAction('END_TURN', {})}
+                disabled={!canEndTurn}
+                className={`px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all transform hover:scale-105 btn-shine ${
+                  canEndTurn
+                    ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white cursor-pointer shadow-lg'
+                    : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-50'
+                }`}
+                title={!canEndTurn ? 'Debes robar y descartar primero' : ''}
+              >
+                ✓ Terminar
+              </button>
+              <button
+                onClick={() => handleAction('CLOSE_ROUND', { player: playerName })}
+                disabled={!canClose}
+                className={`px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all transform hover:scale-105 btn-shine ${
+                  canClose
+                    ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white cursor-pointer shadow-lg card-glow'
+                    : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-50'
+                }`}
+                title={!canClose ? (
+                  !turnState.hasDiscarded 
+                    ? 'Primero debes descartar' 
+                    : remaining.length > 1 
+                      ? `Necesitas 6-7 ligadas (tienes ${remaining.length} sueltas)` 
+                      : `Carta suelta debe ser ≤5 (tienes ${remaining[0]?.rank || '?'})`
+                ) : perfectChinchon ? '¡CHINCHÓN PERFECTO! 🏆' : normalChinchon ? '¡Chinchón! -10 pts' : 'Cerrar ronda'}
+              >
+                {perfectChinchon ? '🏆 CHINCHÓN' : '🔒 Cerrar'}
+              </button>
+              {canDeal && (
                 <button
                   onClick={() => handleAction('FINISH_ROUND', {})}
-                  disabled={!canDeal}
-                  className={`px-3 py-1 rounded text-sm font-semibold transition ${
-                    canDeal
-                      ? 'bg-purple-600 hover:bg-purple-700 text-white cursor-pointer'
-                      : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  }`}
-                  title={!canDeal ? 'Solo cuando la ronda termina' : ''}
+                  className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-bold bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white cursor-pointer shadow-lg transition-all transform hover:scale-105 btn-shine"
                 >
                   🃏 Repartir
                 </button>
-              </div>
-            </div>
-            <div className="bg-white/10 rounded-lg p-3 overflow-x-auto">
-              <Hand
-                cards={state.players?.[playerName]?.hand || []}
-                onDiscard={(cardId) => handleAction('DISCARD', { player: playerName, cardId })}
-                canDiscard={canDiscard}
-                onErrorMsg={(msg) => setToast({ message: msg, visible: true })}
-              />
+              )}
             </div>
           </div>
+          
+          <div className="glass rounded-lg p-2 md:p-3 overflow-x-auto">
+            <Hand
+              cards={state.players?.[playerName]?.hand || []}
+              onDiscard={(cardId) => handleAction('DISCARD', { player: playerName, cardId })}
+              canDiscard={canDiscard}
+              onErrorMsg={(msg) => setToast({ message: msg, visible: true })}
+            />
+          </div>
         </div>
-      </main>
+      </div>
 
-      {/* MODAL: Round summary */}
+      {/* MODAL */}
       {state.lastRoundSummary && (
-        <Modal title={`Resumen Ronda ${state.round}`} onClose={() => sendAction({ type: 'FINISH_ROUND' })}>
-          <div className="space-y-3">
+        <Modal title={`🎯 Resumen Ronda ${state.round}`} onClose={() => sendAction({ type: 'FINISH_ROUND' })}>
+          <div className="space-y-4">
             {state.lastRoundSummary.chinchon ? (
-              <div className="text-amber-600 font-semibold">¡Chinchón de {state.lastRoundSummary.chinchon}!</div>
+              <div className="text-amber-600 font-bold text-lg flex items-center gap-2 animate-pulse-soft">
+                🏆 ¡Chinchón de {state.lastRoundSummary.chinchon}!
+              </div>
             ) : (
-              <div className="text-sm text-slate-600">Cierre por: {state.lastRoundSummary.closer}</div>
+              <div className="text-sm text-slate-600">Cierre por: <strong>{state.lastRoundSummary.closer}</strong></div>
             )}
 
-            <div className="mt-2">
+            <div className="space-y-3">
               {Object.entries(state.lastRoundSummary.players).map(([name, s]) => (
-                <div key={name} className="mb-3">
-                  <div className="font-medium">{name} — {s.points} puntos</div>
-                  <div className="text-xs text-slate-600">Melds: {s.melds.length} — No combinadas: {s.remaining.map(r=>r.id).join(', ') || '0'}</div>
+                <div key={name} className="glass rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-base">{name}</span>
+                    <span className={`text-xl font-bold ${
+                      s.points <= 0 ? 'text-green-600' : s.points < 50 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {s.points} pts
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-600 space-y-1">
+                    <div>✅ Combinaciones: {s.melds.length}</div>
+                    <div>❌ Sin combinar: {s.remaining.length > 0 ? s.remaining.map(r=>r.rank).join(', ') : 'Ninguna'}</div>
+                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="pt-3 border-t flex justify-end gap-3">
-              <button className="px-3 py-2 rounded bg-slate-200" onClick={() => sendAction({ type: 'FINISH_ROUND' })}>Nueva ronda</button>
+            <div className="pt-4 border-t flex justify-end">
+              <button 
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold transition-all transform hover:scale-105 btn-shine" 
+                onClick={() => sendAction({ type: 'FINISH_ROUND' })}
+              >
+                🎮 Nueva ronda
+              </button>
             </div>
           </div>
         </Modal>
       )}
 
       {/* TOAST */}
-      <Toast message={toast.message} visible={toast.visible} onClose={() => setToast({ message: '', visible: false })} />
+      <Toast 
+        message={toast.message} 
+        visible={toast.visible} 
+        onClose={() => setToast({ message: '', visible: false })} 
+      />
     </div>
   )
 }
